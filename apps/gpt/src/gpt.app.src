@@ -1,0 +1,16 @@
+%% -*- mode: Erlang; -*-
+
+{application, gpt,
+ [
+  {description, "GProc tutorial"},
+  {vsn, "1"},
+  {registered, []},
+  {applications,
+   [
+    kernel,
+    stdlib,
+    gproc     % <--- Приложение зависит от gproc
+   ]},
+  {mod, { gpt_app, []}},
+  {env, []}
+ ]}.
