@@ -1,6 +1,6 @@
 
 ## Name of the node
--sname gptnode@localhost
+-sname {{node}}
 
 ## Cookie for distributed erlang
 -setcookie gptnode
