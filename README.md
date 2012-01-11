@@ -37,17 +37,17 @@ gpt_sup.erl
 
 Добавляем в заготовку для .app-файла (`src/gpt.app.src`) описание приложения и зависимость от gproc:
 
-<pre>
-  {description, "GProc tutorial"},
-  ...
-  {applications,
-   [
-    kernel,
-    stdlib,
-    gproc     % <--- Приложение зависит от gproc
-   ]},
-  ...
-</pre>
+
+   {description, "GProc tutorial"},
+   ...
+   {applications,
+    [
+     kernel,
+     stdlib,
+     gproc     % <--- Приложение зависит от gproc
+    ]},
+   ...
+
 
 Возвращаемся назад в директорию верхнего уровня, где хранится наш проект, создаём в ней поддиректорию `rel` и переходим туда:
 
