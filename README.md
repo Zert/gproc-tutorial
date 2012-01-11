@@ -10,63 +10,63 @@
 
 Для начала создаём директорию, в которой будет находиться наш проект (`gpt`) и переходим в неё:
 
-<pre>
+```
 $ mkdir gpt && cd gpt
-</pre>
+```
 
 В ней создадим поддиректорию, где будем сохранять исходные файлы непосредственно нашего приложения:
 
-<pre>
+```
 $ mkdir -p apps/gpt && cd apps/gpt
-</pre>
+```
 
 Делаем скелет приложения:
 
-<pre>
+```
 $ rebar create-app appid=gpt
-</pre>
+```
 
 Параметр appid определяет имя нашего приложения и соответственно префикс исходных файлов.
 
-<pre>
+```
 $ ls -1 src
 gpt_app.erl
 gpt.app.src
 gpt_sup.erl
-</pre>
+```
 
 Добавляем в заготовку для .app-файла (`src/gpt.app.src`) описание приложения и зависимость от gproc:
 
-
-   {description, "GProc tutorial"},
-   ...
-   {applications,
-    [
-     kernel,
-     stdlib,
-     gproc     % <--- Приложение зависит от gproc
-    ]},
-   ...
-
+```erlang
+{description, "GProc tutorial"},
+...
+{applications,
+ [
+  kernel,
+  stdlib,
+  gproc     % <--- Приложение зависит от gproc
+ ]},
+...
+```
 
 Возвращаемся назад в директорию верхнего уровня, где хранится наш проект, создаём в ней поддиректорию `rel` и переходим туда:
 
-<pre>
+```
 $ cd ../../
 $ mkdir rel && cd rel
-</pre>
+```
 
 В rel будут лежать файлы, необходимые для создания релиза — всего того, что требуется для запуска проекта, все его runtime-зависимости.
 
 С помощью `rebar` создадим заготовку для ноды, передав её имя в параметре `nodeid`:
 
-<pre>
+```
 $ rebar create-node nodeid=gptnode
-</pre>
+```
 
 Редактируем файл `reltool.config`:
 
-<pre>
+```erlang
   ...
   {lib_dirs, ["../deps", "../apps"]},    % <--- В этих директориях reltool будет искать зависимости и наше приложение
   {rel, "gptnode", "1",
@@ -78,29 +78,29 @@ $ rebar create-node nodeid=gptnode
     gpt        % <--- Наше приложение
    ]},
   ...
-</pre>
+```
 
 Далее можно отредактировать файл `files/vm.args`, изменив, допустим, имя ноды:
 
-<pre>
+```
 -name gptnode@127.0.0.1
-</pre>
+```
 
 на
 
-<pre>
+```
 -sname gptnode@localhost
-</pre>
+```
 
 Вернёмся в директорию верхнего уровня:
 
-<pre>
+```
 $ cd ../
-</pre>
+```
 
 и создадим файл `rebar.config` со следующим содержанием:
 
-<pre>
+```erlang
 %% Здесь будут лежать зависимости
 {deps_dir, ["deps"]}.
 
@@ -116,34 +116,34 @@ $ cd ../
  [
   {gproc, ".*", {git, "http://github.com/esl/gproc.git", "master"}}
  ]}.
-</pre>
+```
 
 Теперь у нас всё готово для создания релиза. Выполним несколько команд `rebar` (вывод команд опущен):
 
-<pre>
+```
 $ rebar get-deps
 $ rebar compile
 $ rebar generate
-</pre>
+```
 
 Команда `get-deps` скачивает зависимости. В нашем случае, это приложение gproc. Команда `compile`, очевидно, вызывает компиляцию всех исходных файлов, а `generate` создаёт релиз.
 
 Директорию `rel/gptnode` можно смело перемещать на другие хосты (разумеется, при условии бинарной совместимости, так как релиз включает в себя и виртуальную машину Erlang). После создания релиза запускаем то, что получилось:
 
-<pre>
+```
 (cd rel/gptnode && sh bin/gptnode console)
-</pre>
+```
 
 Убедимся в том, что все нужные приложения запущены:
 
-<pre>
+```
 (gptnode@localhost)1> application:which_applications().
 [{sasl,"SASL  CXC 138 11","2.1.9.2"},
  {gpt,"GProc tutorial","1"},
  {gproc,"GPROC","0.01"},
  {stdlib,"ERTS  CXC 138 10","1.17.2"},
  {kernel,"ERTS  CXC 138 10","2.14.2"}]
-</pre>
+```
 
 Нас интересуют gpt и gproc. Как видно, они в этом списке присутствуют.
 
@@ -176,63 +176,63 @@ $ rebar generate
 
 Запустили ноду, используя вышеупомянутую команду, и выполнили в ней серию запусков процессов с разными идентификаторами:
 
-<pre>
+```
 (gptnode@localhost)1> [gpt_sup:start_worker(Id) || Id <- lists:seq(1,3)].
 (gpt_proc:29) Start process: 1
 (gpt_proc:29) Start process: 2
 (gpt_proc:29) Start process: 3
 [{ok,<0.61.0>},{ok,<0.62.0>},{ok,<0.63.0>}]
-</pre>
+```
 
 Вызов функции `gproc:add_local_name(Name)` регистрирует процесс, её вызывающий, под именем `Name` (эта функция является просто обёрткой над `gproc:reg({n,l,Name})`, где `n` — `name`, `l` — `local`). После этого функция `gproc:lookup_local_name(Name)` будет возвращать идентификатор процесса.
 
 Теперь скажем одному из процессов, чтобы он начал ждать запуска и регистрации процесса с именем 4. Код, отвечающий за это:
 
-<pre>
+```erlang
 handle_info({await, Id},
             #state{id = MyId} = State) ->
     gproc:await({n, l, Id}),
     ?DBG("MyId: ~p.~nNewId: ~p.", [MyId, Id]),
     {noreply, State};
-</pre>
+```
 
 Здесь функция `gproc:await/1` вызывается с аргументом, имеющим следующий вид: `{n, l, Id}`. Почему-то она не имеет обёртки, ну да ладно.
 
-<pre>
+```
 (gptnode@localhost)2> gproc:lookup_local_name(1) ! {await, 4}.
 {await,4}
-</pre>
+```
 
 Запустив процесс с идентификатором 4, увидим сначала сообщение от него, а затем от первого ждущего процесса:
 
-<pre>
+```
 (gptnode@localhost)3> gpt_sup:start_worker(4).
 (gpt_proc:29) Start process: 4
 (gpt_proc:45) MyId: 1.
 NewId: 4.
 {ok,<0.66.0>}
-</pre>
+```
 
 Сделаем остановку процесса по приёму сообщения `stop`:
 
-<pre>
+```erlang
 handle_info(stop, State) ->
     {stop, normal, State};
-</pre>
+```
 
 и остановим его:
 
-<pre>
+```
 (gptnode@localhost)4> gproc:lookup_local_name(1) ! stop.
 stop
-</pre>
+```
 
 После этого процесс автоматически удаляется из базы данных регистратора:
 
-<pre>
+```
 (gptnode@localhost)5> gproc:lookup_local_name(1).
 undefined
-</pre>
+```
 
 ### Глобальная регистрация
 
@@ -249,52 +249,52 @@ undefined
 
 Первые два пункта устанавливаются в файле `files/vm.args`:
 
-<pre>
+```
 ## Name of the node
 -sname {{node}}
 
 ## Cookie for distributed erlang
 -setcookie gptnode
-</pre>
+```
 
 Здесь `{{node}}` — плейсхолдер, который будет заполняться при создании релиза. Параметр виртуальной машины `-setcookie` устанавливает значение cookie для этой ноды, в кластере у всех нод эти значения должны быть одинаковыми.
 
 Вторые два пункта устанавливаются в файле `files/app.config`. Здесь тоже будут использоваться плейсхолдеры:
 
-<pre>
- %% GProc
- {gproc, {{ gproc_params }} },
+```erlang
+%% GProc
+{gproc, {{ gproc_params }} },
 
- %% Kernel
- {kernel, {{ kernel_params }} },
-</pre>
+%% Kernel
+{kernel, {{ kernel_params }} },
+```
 
 Для заполнения плейсхолдеров укажем в файле `reltool.config`, что предыдущие два файла надо обрабатывать как шаблоны:
 
-<pre>
+```erlang
   {template, "files/app.config", "etc/app.config"},
   {template, "files/vm.args", "etc/vm.args"}
-</pre>
+```
 
 Создаём два конфигурационных файла, по одному на каждую ноду: `vars/dev1_vars.config` и `vars/dev2_vars.config`. В файле `dev1_vars.config` будут находиться следующие значения плейсхолдеров:
 
-<pre>
+```erlang
 %% etc/app.config
 {gproc_params,
-"[
+ [
   {gproc_dist, {['gpt1@localhost'],
                 [{workers, ['gpt2@localhost']}]}}
- ]"}.
+ ]}.
 
 {kernel_params,
-"[
+ [
   {sync_nodes_mandatory, ['gpt2@localhost']},
   {sync_nodes_timeout, 15000}
- ]"}.
+ ]}.
 
 %% etc/vm.args
 {node,         "gpt1@localhost"}.
-</pre>
+```
 
 Для файла `dev2_vars.config` параметры `sync_nodes_mandatory` и `node` поменяются местами. Разберём их подробнее.
 
@@ -306,46 +306,47 @@ undefined
 
 Теперь создадим два релиза с помощью следующего правила из Makefile:
 
-<pre>
+```make
 dev1 dev2:
 	mkdir -p dev
 	(cd rel && rebar generate target_dir=../dev/$@ overlay_vars=vars/$@_vars.config)
-</pre>
+```
 
 Переходим в директорию `dev/dev1`, запускаем второе окно терминала (или создаём новое окно в screen`), переходим в директорию `dev/dev2`. Запускаем в каждом шелле `./bin/gptnode console`. Посмотрим список доступных нод в первом ерланговском шелле:
-<pre>
+
+```
 (gpt1@localhost)1> nodes().
 [gpt2@localhost]
-</pre>
+```
 
 Видим, что вторая нода нормально запустилась и подключилась к кластеру. Чтобы долго не мудрить, зарегистрируем глобально процесс текущего шелла под каким-нибудь термом:
 
-<pre>
+```
 (gpt1@localhost)2> gproc:add_global_name({shell, 1}).
 true
-</pre>
+```
 
 В другом окне попробуем запросить идентификатор процесса по этому терму:
 
-<pre>
+```
 (gpt2@localhost)2> gproc:lookup_global_name({shell, 1}).
 <3358.70.0>
-</pre>
+```
 
 Как видим, успешно. Послав этому процессу сообщение, мы сможем получить его на первой ноде:
 
-<pre>
+```
 (gpt2@localhost)3> gproc:lookup_global_name({shell, 1}) ! {the,message}.
 message
-</pre>
+```
 
 Читаем его на первой ноде командой `flush()`:
 
-<pre>
+```
 (gpt1@localhost)3> flush().
 Shell got {the,message}
 ok
-</pre>
+```
 
 ### Заключение
 
